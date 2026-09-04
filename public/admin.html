@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bomma Kadai — Admin (API)</title>
+  <style>
+    :root { --primary:#ff6b6b; --dark:#2d3436; --muted:#7f8c8d; --card:#fff; --bg:#f7f9fc; }
+    body{font-family:system-ui,Arial;margin:20px;background:var(--bg);color:var(--dark)}
+    .card{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06);margin-bottom:12px}
+    input,select{padding:8px;border:1px solid #e6e9ee;border-radius:6px;width:100%}
+    button{background:var(--primary);color:white;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #f1f2f4;text-align:left}
+    .actions{display:flex;gap:8px}
+    .note{color:var(--muted);font-size:0.9rem}
+  </style>
+</head>
+<body>
+  <h2>Bomma Kadai — Admin (API)</h2>
+  <div class="card">
+    <h3>Login</h3>
+    <p class="note">Login with admin password (server must be running).</p>
+    <input id="password" type="password" placeholder="Admin password" />
+    <div style="margin-top:8px"><button id="login">Login</button></div>
+    <p id="loginMsg" class="note"></p>
+  </div>
+
+  <div id="ui" style="display:none">
+    <div class="card">
+      <h3>Products</h3>
+      <table id="productsTable"><thead><tr><th>Emoji</th><th>Name</th><th>Price</th><th>Actions</th></tr></thead><tbody></tbody></table>
+      <div style="margin-top:8px">
+        <input id="pName" placeholder="Name" />
+        <input id="pPrice" placeholder="Price" type="number" />
+        <input id="pEmoji" placeholder="Emoji" />
+        <div style="margin-top:8px"><button id="addProd">Add Product</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Orders</h3>
+      <table id="ordersTable"><thead><tr><th>ID</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let token = null;
+
+    function authHeaders() {
+      return token ? { 'Authorization': 'Bearer ' + token } : {};
+    }
+
+    async function login() {
+      const pwd = document.getElementById('password').value;
+      try {
+        const res = await fetch(API + '/admin/login', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pwd }) });
+        if (!res.ok) throw new Error('Login failed');
+        const data = await res.json();
+        token = data.token;
+        document.getElementById('loginMsg').textContent = 'Logged in';
+        document.getElementById('ui').style.display = 'block';
+        loadProducts();
+        loadOrders();
+      } catch (e) {
+        document.getElementById('loginMsg').textContent = 'Login failed';
+      }
+    }
+
+    async function loadProducts() {
+      const res = await fetch(API + '/products');
+      const products = await res.json();
+      const tbody = document.querySelector('#productsTable tbody');
+      tbody.innerHTML = '';
+      products.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${p.emoji||'🎁'}</td><td>${p.name}</td><td>₹${p.price}</td><td class="actions"><button data-id="${p.id}" class="edit">Edit</button><button data-id="${p.id}" class="del">Delete</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadOrders() {
+      const res = await fetch(API + '/orders');
+      const orders = await res.json();
+      const tbody = document.querySelector('#ordersTable tbody');
+      tbody.innerHTML = '';
+      orders.slice().reverse().forEach(o => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${o.id}</td><td>${o.items.map(i=>i.name+'×'+i.quantity).join('<br>')}</td><td>₹${o.total}</td><td>${o.status}</td><td class="actions"><button data-id="${o.id}" class="view">View</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('login').addEventListener('click', login);
+
+    document.getElementById('addProd').addEventListener('click', async () => {
+      const name = document.getElementById('pName').value.trim();
+      const price = Number(document.getElementById('pPrice').value);
+      const emoji = document.getElementById('pEmoji').value.trim();
+      if (!name || !price) return alert('Provide name and price');
+      const res = await fetch(API + '/products', { method: 'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ name, price, emoji }) });
+      if (res.ok) { document.getElementById('pName').value=''; document.getElementById('pPrice').value=''; document.getElementById('pEmoji').value=''; loadProducts(); }
+      else alert('Failed');
+    });
+
+    document.addEventListener('click', async (e) => {
+      if (e.target.matches('button.del')) {
+        const id = e.target.getAttribute('data-id');
+        if (!confirm('Delete?')) return;
+        await fetch(API + '/products/' + id, { method: 'DELETE', headers: authHeaders() });
+        loadProducts();
+      }
+      if (e.target.matches('button.edit')) {
+        const id = e.target.getAttribute('data-id');
+        const newPrice = Number(prompt('New price in ₹')); if (!newPrice) return;
+        await fetch(API + '/products/' + id, { method: 'PUT', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ price: newPrice }) });
+        loadProducts();
+      }
+      if (e.target.matches('button.view')) {
+        const id = e.target.getAttribute('data-id');
+        const res = await fetch(API + '/orders');
+        const orders = await res.json();
+        const order = orders.find(o=>o.id===id);
+        if (order) alert(JSON.stringify(order, null, 2));
+      }
+    });
+  </script>
+</body>
+</html>

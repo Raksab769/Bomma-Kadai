@@ -1,0 +1,6 @@
+[
+  { "id": 1, "name": "Fluffy Teddy Bear", "price": 799, "emoji": "🧸" },
+  { "id": 2, "name": "Racing Remote Car", "price": 1499, "emoji": "🏎️" },
+  { "id": 3, "name": "Wooden Educational Puzzle", "price": 499, "emoji": "🧩" },
+  { "id": 4, "name": "Superhero Action Figure", "price": 649, "emoji": "🦸‍♂️" }
+]
