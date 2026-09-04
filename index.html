@@ -316,6 +316,7 @@
                 <li><a href="#shop">Shop Toys</a></li>
                 <li><a href="#about">About Us</a></li>
                 <li><a href="#contact">Contact</a></li>
+                <li><a href="/admin.html">Admin</a></li>
             </ul>
             <button class="cart-btn" onclick="toggleCart()">
                 🛒 Cart (<span id="cart-count">0</span>)
@@ -333,48 +334,8 @@
     <!-- Shop Catalog -->
     <main class="container" id="shop">
         <h2 class="section-title">Featured Toys</h2>
-        <div class="products-grid">
-            
-            <!-- Product 1 -->
-            <div class="product-card">
-                <div class="product-img">🧸</div>
-                <div class="product-info">
-                    <h3 class="product-title">Fluffy Teddy Bear</h3>
-                    <div class="product-price">₹799</div>
-                    <button class="add-to-cart" onclick="addToCart('Fluffy Teddy Bear', 799)">Add to Cart</button>
-                </div>
-            </div>
-
-            <!-- Product 2 -->
-            <div class="product-card">
-                <div class="product-img">🏎️</div>
-                <div class="product-info">
-                    <h3 class="product-title">Racing Remote Car</h3>
-                    <div class="product-price">₹1,499</div>
-                    <button class="add-to-cart" onclick="addToCart('Racing Remote Car', 1499)">Add to Cart</button>
-                </div>
-            </div>
-
-            <!-- Product 3 -->
-            <div class="product-card">
-                <div class="product-img">🧩</div>
-                <div class="product-info">
-                    <h3 class="product-title">Wooden Educational Puzzle</h3>
-                    <div class="product-price">₹499</div>
-                    <button class="add-to-cart" onclick="addToCart('Wooden Educational Puzzle', 499)">Add to Cart</button>
-                </div>
-            </div>
-
-            <!-- Product 4 -->
-            <div class="product-card">
-                <div class="product-img">🦸‍♂️</div>
-                <div class="product-info">
-                    <h3 class="product-title">Superhero Action Figure</h3>
-                    <div class="product-price">₹649</div>
-                    <button class="add-to-cart" onclick="addToCart('Superhero Action Figure', 649)">Add to Cart</button>
-                </div>
-            </div>
-
+        <div class="products-grid" id="productsGrid">
+            <!-- Products will be rendered here dynamically -->
         </div>
     </main>
 
@@ -404,20 +365,64 @@
 
     <!-- JavaScript for Interactivity -->
     <script>
+        // Products are stored in localStorage under key 'products'
+        const defaultProducts = [
+            { id: 1, name: 'Fluffy Teddy Bear', price: 799, emoji: '🧸' },
+            { id: 2, name: 'Racing Remote Car', price: 1499, emoji: '🏎️' },
+            { id: 3, name: 'Wooden Educational Puzzle', price: 499, emoji: '🧩' },
+            { id: 4, name: 'Superhero Action Figure', price: 649, emoji: '🦸‍♂️' }
+        ];
+
+        function loadProducts() {
+            const stored = localStorage.getItem('products');
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    console.error('Invalid products in storage, resetting', e);
+                    localStorage.removeItem('products');
+                }
+            }
+            localStorage.setItem('products', JSON.stringify(defaultProducts));
+            return defaultProducts;
+        }
+
+        function saveProducts(products) {
+            localStorage.setItem('products', JSON.stringify(products));
+        }
+
+        let products = loadProducts();
         let cart = [];
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+            products.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="product-img">${p.emoji || '🎁'}</div>
+                    <div class="product-info">
+                        <h3 class="product-title">${p.name}</h3>
+                        <div class="product-price">₹${p.price}</div>
+                        <button class="add-to-cart" onclick="addToCart(${p.id})">Add to Cart</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
 
         function toggleCart() {
             const modal = document.getElementById('cartModal');
             modal.classList.toggle('open');
         }
 
-        function addToCart(name, price) {
-            const existingItem = cart.find(item => item.name === name);
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({ name, price, quantity: 1 });
-            }
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            const existing = cart.find(item => item.id === productId);
+            if (existing) existing.quantity += 1;
+            else cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
             updateCartUI();
             toggleCart();
         }
@@ -438,15 +443,22 @@
                     totalCount += item.quantity;
                     totalPrice += item.price * item.quantity;
 
-                    cartItemsContainer.innerHTML += `
-                        <div class="cart-item">
+                    const div = document.createElement('div');
+                    div.className = 'cart-item';
+                    div.innerHTML = `
+                        <div style="max-width:70%;">
+                            <strong>${item.name}</strong><br>
+                            <small>₹${item.price} x ${item.quantity}</small>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
                             <div>
-                                <strong>${item.name}</strong><br>
-                                <small>₹${item.price} x ${item.quantity}</small>
+                                <button onclick="changeQuantity(${item.id}, -1)" style="background:none; border:1px solid #ddd; padding:4px 6px; border-radius:4px; cursor:pointer;">-</button>
+                                <button onclick="changeQuantity(${item.id}, 1)" style="background:none; border:1px solid #ddd; padding:4px 6px; border-radius:4px; cursor:pointer;">+</button>
                             </div>
-                            <button onclick="removeItem(${index})" style="background:none; border:none; color: red; cursor:pointer; font-weight:bold;">Remove</button>
+                            <button onclick="removeItem(${item.id})" style="background:none; border:none; color: red; cursor:pointer; font-weight:bold;">Remove</button>
                         </div>
                     `;
+                    cartItemsContainer.appendChild(div);
                 });
             }
 
@@ -454,8 +466,16 @@
             cartTotal.innerText = `₹${totalPrice}`;
         }
 
-        function removeItem(index) {
-            cart.splice(index, 1);
+        function changeQuantity(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if (!item) return;
+            item.quantity += delta;
+            if (item.quantity <= 0) removeItem(productId);
+            updateCartUI();
+        }
+
+        function removeItem(productId) {
+            cart = cart.filter(i => i.id !== productId);
             updateCartUI();
         }
 
@@ -464,11 +484,36 @@
                 alert('Your cart is empty!');
                 return;
             }
+            // Save order to localStorage so admin can view it
+            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+            const order = {
+                id: 'ORD-' + Date.now(),
+                items: cart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity })),
+                total,
+                createdAt: new Date().toISOString(),
+                status: 'Pending'
+            };
+            orders.push(order);
+            localStorage.setItem('orders', JSON.stringify(orders));
+
             alert('Thank you for shopping at Bomma Kadai! Order placed successfully.');
             cart = [];
             updateCartUI();
             toggleCart();
         }
+
+        // Initial render
+        renderProducts();
+        updateCartUI();
+
+        // Listen for storage events so admin page updates if open in another tab
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'products') {
+                products = JSON.parse(e.newValue || '[]');
+                renderProducts();
+            }
+        });
     </script>
 </body>
 </html>
