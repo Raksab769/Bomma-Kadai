@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bomma Kadai — Admin</title>
+  <style>
+    :root {
+      --primary: #ff6b6b;
+      --dark: #2d3436;
+      --muted: #7f8c8d;
+      --card: #fff;
+      --bg: #f7f9fc;
+      --shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin:0;
+      background:var(--bg);
+      color:var(--dark);
+      padding:32px;
+    }
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    h1{font-size:1.4rem;margin:0}
+    .card{background:var(--card);padding:16px;border-radius:10px;box-shadow:var(--shadow);margin-bottom:16px}
+    .grid{display:grid;gap:16px}
+    .two{grid-template-columns:1fr 360px}
+    label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:6px}
+    input[type="text"], input[type="number"], select, textarea{
+      width:100%;padding:8px;border:1px solid #e6e9ee;border-radius:6px;font-size:1rem;
+    }
+    button{background:var(--primary);color:white;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
+    button.ghost{background:#eef3f5;color:var(--dark);border:1px solid #e0e6ea}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-bottom:1px solid #f0f2f4;text-align:left;font-size:0.95rem}
+    th{font-weight:600;color:var(--muted)}
+    .actions{display:flex;gap:8px}
+    .small{font-size:0.85rem;padding:6px 8px}
+    .danger{background:#ff6b6b;color:white}
+    .status-pill{padding:6px 10px;border-radius:999px;font-weight:600;font-size:0.85rem}
+    .status-Pending{background:#ffeaa7;color:#6d4c00}
+    .status-Processing{background:#dfe7ff;color:#12305e}
+    .status-Shipped{background:#d1ffeb;color:#054a36}
+    .status-Delivered{background:#e0e0e0;color:#333}
+    .note{font-size:0.85rem;color:var(--muted)}
+    .top-controls{display:flex;gap:8px;align-items:center}
+    .hidden{display:none}
+    footer{margin-top:20px;color:var(--muted);font-size:0.85rem}
+    @media (max-width:880px){.two{grid-template-columns:1fr}header{flex-direction:column;align-items:flex-start;gap:10px}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bomma Kadai — Admin</h1>
+    <div class="top-controls">
+      <div class="note">Simple client-side admin (localStorage). Not secure for production.</div>
+      <button id="logoutBtn" class="ghost small hidden">Logout</button>
+    </div>
+  </header>
+
+  <div id="loginCard" class="card">
+    <h3>Admin Login</h3>
+    <p class="note">This page uses a simple password to unlock the UI in this browser tab. For a secure admin area, add server-side authentication.</p>
+    <label>Admin Password</label>
+    <input id="adminPass" type="password" placeholder="Enter admin password" />
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <button id="loginBtn">Unlock Admin</button>
+      <button id="demoBtn" class="ghost">Use Demo Password</button>
+    </div>
+  </div>
+
+  <div id="adminUI" class="grid two hidden">
+    <!-- Products -->
+    <div>
+      <div class="card">
+        <h3>Products</h3>
+        <p class="note">Edit price inline. Add new products or delete existing ones. Data stored in localStorage key "products".</p>
+
+        <table id="productsTable" style="margin-top:12px">
+          <thead>
+            <tr>
+              <th style="width:44px">Emoji</th>
+              <th>Name</th>
+              <th style="width:120px">Price (₹)</th>
+              <th style="width:140px">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:flex-end">
+          <div style="flex:1">
+            <label>Product Name</label>
+            <input id="newName" type="text" placeholder="e.g., Magic Kite" />
+          </div>
+          <div style="width:110px">
+            <label>Price (₹)</label>
+            <input id="newPrice" type="number" min="0" />
+          </div>
+          <div style="width:92px">
+            <label>Emoji</label>
+            <input id="newEmoji" type="text" maxlength="3" placeholder="🧸" />
+          </div>
+          <div>
+            <button id="addProductBtn">Add</button>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px">
+          <button id="exportProducts" class="ghost small">Export Products</button>
+          <button id="importProducts" class="ghost small">Import Products</button>
+          <input id="prodFile" type="file" accept=".json" class="hidden" />
+        </div>
+      </div>
+
+      <!-- Orders -->
+      <div class="card" style="margin-top:12px">
+        <h3>Orders</h3>
+        <p class="note">Orders are saved in localStorage key "orders". You can update status, delete, or export orders.</p>
+
+        <table id="ordersTable" style="margin-top:12px">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Items</th>
+              <th style="width:110px">Total (₹)</th>
+              <th style="width:140px">Status</th>
+              <th style="width:120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div style="margin-top:10px; display:flex; gap:8px">
+          <button id="exportOrders" class="ghost small">Export Orders</button>
+          <button id="clearOrders" class="ghost small danger">Clear All Orders</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: utilities -->
+    <div>
+      <div class="card">
+        <h3>Utilities</h3>
+        <p class="note">Quick operations for testing and backups.</p>
+
+        <div style="display:grid; gap:8px; margin-top:10px">
+          <button id="resetProducts" class="ghost">Reset Products to Default</button>
+          <button id="seedOrders" class="ghost">Seed Example Order</button>
+          <button id="downloadAll" class="ghost">Download Backup (products + orders)</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3>Notes</h3>
+        <ul class="note">
+          <li>This admin is client-side only. Anyone with repo access or file access can open admin.html.</li>
+          <li>For production: implement server-side authentication + persistent storage (DB) + APIs.</li>
+          <li>Default unlock password: <strong>admin123</strong> (change immediately if you publish).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="note">Admin UI for local management — not a substitute for a server-backed admin panel.</div>
+  </footer>
+
+  <script>
+    // --- Config (client-side only) ---
+    const ADMIN_PASSWORD = 'admin123'; // change or remove for production
+
+    // --- Helpers for localStorage keys used by index.html ---
+    const PRODUCTS_KEY = 'products';
+    const ORDERS_KEY = 'orders';
+
+    // Default products (keeps parity with storefront)
+    const defaultProducts = [
+      { id: 1, name: 'Fluffy Teddy Bear', price: 799, emoji: '🧸' },
+      { id: 2, name: 'Racing Remote Car', price: 1499, emoji: '🏎️' },
+      { id: 3, name: 'Wooden Educational Puzzle', price: 499, emoji: '🧩' },
+      { id: 4, name: 'Superhero Action Figure', price: 649, emoji: '🦸‍♂️' }
+    ];
+
+    // --- Auth (very simple, client-side) ---
+    const loginCard = document.getElementById('loginCard');
+    const adminUI = document.getElementById('adminUI');
+    const loginBtn = document.getElementById('loginBtn');
+    const demoBtn = document.getElementById('demoBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const adminPassInput = document.getElementById('adminPass');
+
+    function isAuthenticated() {
+      return sessionStorage.getItem('bk_admin') === '1';
+    }
+
+    function setAuthenticated(val) {
+      if (val) sessionStorage.setItem('bk_admin', '1');
+      else sessionStorage.removeItem('bk_admin');
+      renderAuth();
+    }
+
+    function renderAuth() {
+      if (isAuthenticated()) {
+        loginCard.classList.add('hidden');
+        adminUI.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+      } else {
+        loginCard.classList.remove('hidden');
+        adminUI.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+      }
+    }
+
+    loginBtn.addEventListener('click', () => {
+      const v = adminPassInput.value || '';
+      if (v === ADMIN_PASSWORD) {
+        setAuthenticated(true);
+      } else {
+        alert('Incorrect password.');
+      }
+    });
+
+    demoBtn.addEventListener('click', () => {
+      adminPassInput.value = ADMIN_PASSWORD;
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      setAuthenticated(false);
+      adminPassInput.value = '';
+    });
+
+    renderAuth();
+
+    // --- Storage helpers ---
+    function loadProducts() {
+      try {
+        const raw = localStorage.getItem(PRODUCTS_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        console.error(e);
+        return null;
+      }
+    }
+
+    function saveProducts(products) {
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+      // trigger storage event in same tab: create and remove a flag
+      localStorage.setItem('__products_update__', Date.now());
+      setTimeout(() => localStorage.removeItem('__products_update__'), 50);
+    }
+
+    function loadOrders() {
+      try {
+        const raw = localStorage.getItem(ORDERS_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error(e);
+        return [];
+      }
+    }
+
+    function saveOrders(orders) {
+      localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+      localStorage.setItem('__orders_update__', Date.now());
+      setTimeout(() => localStorage.removeItem('__orders_update__'), 50);
+    }
+
+    // --- Rendering functions ---
+    const prodTbody = document.querySelector('#productsTable tbody');
+    const ordersTbody = document.querySelector('#ordersTable tbody');
+
+    function ensureProducts() {
+      let p = loadProducts();
+      if (!p || !Array.isArray(p) || p.length === 0) {
+        p = defaultProducts.slice();
+        saveProducts(p);
+      }
+      return p;
+    }
+
+    function renderProducts() {
+      const products = ensureProducts();
+      prodTbody.innerHTML = '';
+      products.forEach(p => {
+        const tr = document.createElement('tr');
+
+        const emojiTd = document.createElement('td');
+        emojiTd.textContent = p.emoji || '🎁';
+        const nameTd = document.createElement('td');
+        nameTd.textContent = p.name;
+
+        const priceTd = document.createElement('td');
+        // inline editable price input
+        priceTd.innerHTML = `<input type="number" value="${p.price}" min="0" style="width:100px" data-id="${p.id}" />`;
+
+        const actionsTd = document.createElement('td');
+        actionsTd.innerHTML = `
+          <div class="actions">
+            <button class="ghost small" data-edit="${p.id}">Save</button>
+            <button class="ghost small" data-delete="${p.id}">Delete</button>
+          </div>
+        `;
+
+        tr.appendChild(emojiTd);
+        tr.appendChild(nameTd);
+        tr.appendChild(priceTd);
+        tr.appendChild(actionsTd);
+        prodTbody.appendChild(tr);
+      });
+    }
+
+    function renderOrders() {
+      const orders = loadOrders();
+      ordersTbody.innerHTML = '';
+      if (!orders || orders.length === 0) {
+        ordersTbody.innerHTML = '<tr><td colspan="5" class="note">No orders placed yet.</td></tr>';
+        return;
+      }
+      orders.slice().reverse().forEach(o => {
+        const tr = document.createElement('tr');
+
+        const idTd = document.createElement('td');
+        idTd.textContent = o.id;
+
+        const itemsTd = document.createElement('td');
+        itemsTd.innerHTML = o.items.map(it => `${it.name} <small>×${it.quantity}</small>`).join('<br>');
+
+        const totalTd = document.createElement('td');
+        totalTd.textContent = `₹${o.total}`;
+
+        const statusTd = document.createElement('td');
+        statusTd.innerHTML = `<span class="status-pill status-${o.status}">${o.status}</span><br><small style="color:var(--muted)">${new Date(o.createdAt).toLocaleString()}</small>`;
+
+        const actionsTd = document.createElement('td');
+        actionsTd.innerHTML = `
+          <div class="actions">
+            <select data-order="${o.id}">
+              <option ${o.status==='Pending'?'selected':''}>Pending</option>
+              <option ${o.status==='Processing'?'selected':''}>Processing</option>
+              <option ${o.status==='Shipped'?'selected':''}>Shipped</option>
+              <option ${o.status==='Delivered'?'selected':''}>Delivered</option>
+            </select>
+            <button class="ghost small" data-view="${o.id}">View</button>
+            <button class="ghost small danger" data-del="${o.id}">Delete</button>
+          </div>
+        `;
+
+        tr.appendChild(idTd);
+        tr.appendChild(itemsTd);
+        tr.appendChild(totalTd);
+        tr.appendChild(statusTd);
+        tr.appendChild(actionsTd);
+        ordersTbody.appendChild(tr);
+      });
+    }
+
+    // --- Event delegation for product actions ---
+    prodTbody.addEventListener('click', (e) => {
+      const edit = e.target.closest('[data-edit]');
+      const del = e.target.closest('[data-delete]');
+      if (edit) {
+        const id = Number(edit.getAttribute('data-edit'));
+        const input = prodTbody.querySelector(`input[data-id="${id}"]`);
+        const newPrice = Number(input.value);
+        const products = loadProducts() || [];
+        const p = products.find(x => x.id === id);
+        if (p) {
+          p.price = newPrice;
+          saveProducts(products);
+          renderProducts();
+          alert('Price updated.');
+        }
+      } else if (del) {
+        const id = Number(del.getAttribute('data-delete'));
+        if (!confirm('Delete product? This cannot be undone.')) return;
+        let products = loadProducts() || [];
+        products = products.filter(x => x.id !== id);
+        saveProducts(products);
+        renderProducts();
+      }
+    });
+
+    // Add product
+    document.getElementById('addProductBtn').addEventListener('click', () => {
+      const name = document.getElementById('newName').value.trim();
+      const price = Number(document.getElementById('newPrice').value || 0);
+      const emoji = document.getElementById('newEmoji').value.trim() || '🎁';
+      if (!name || price <= 0) {
+        alert('Provide a valid name and price.');
+        return;
+      }
+      const products = loadProducts() || [];
+      // generate new id
+      const maxId = products.reduce((m, x) => Math.max(m, x.id || 0), 0);
+      const newProd = { id: maxId + 1, name, price, emoji };
+      products.push(newProd);
+      saveProducts(products);
+      document.getElementById('newName').value = '';
+      document.getElementById('newPrice').value = '';
+      document.getElementById('newEmoji').value = '';
+      renderProducts();
+      alert('Product added.');
+    });
+
+    // --- Orders actions --
+    ordersTbody.addEventListener('click', (e) => {
+      const view = e.target.closest('[data-view]');
+      const del = e.target.closest('[data-del]');
+      if (view) {
+        const id = view.getAttribute('data-view');
+        const orders = loadOrders();
+        const o = orders.find(x => x.id === id);
+        if (!o) return alert('Order not found.');
+        alert(`Order ${o.id}\n\nItems:\n${o.items.map(i => `${i.name} × ${i.quantity} — ₹${i.price}`).join('\n')}\n\nTotal: ₹${o.total}\n\nStatus: ${o.status}\nCreated: ${new Date(o.createdAt).toLocaleString()}`);
+      } else if (del) {
+        const id = del.getAttribute('data-del');
+        if (!confirm('Delete order?')) return;
+        let orders = loadOrders();
+        orders = orders.filter(x => x.id !== id);
+        saveOrders(orders);
+        renderOrders();
+      }
+    });
+
+    // status change
+    ordersTbody.addEventListener('change', (e) => {
+      const sel = e.target.closest('select[data-order]');
+      if (!sel) return;
+      const id = sel.getAttribute('data-order');
+      const newStatus = sel.value;
+      const orders = loadOrders();
+      const order = orders.find(x => x.id === id);
+      if (order) {
+        order.status = newStatus;
+        saveOrders(orders);
+        renderOrders();
+      }
+    });
+
+    // Utilities
+    document.getElementById('resetProducts').addEventListener('click', () => {
+      if (!confirm('Reset products to default?')) return;
+      saveProducts(defaultProducts.slice());
+      renderProducts();
+      alert('Products reset.');
+    });
+
+    document.getElementById('seedOrders').addEventListener('click', () => {
+      const orders = loadOrders();
+      const example = {
+        id: 'ORD-' + Date.now(),
+        items: [{ name: 'Fluffy Teddy Bear', price: 799, quantity: 1 }],
+        total: 799,
+        createdAt: new Date().toISOString(),
+        status: 'Pending'
+      };
+      orders.push(example);
+      saveOrders(orders);
+      renderOrders();
+      alert('Example order added.');
+    });
+
+    // Export / Import products
+    const exportProductsBtn = document.getElementById('exportProducts');
+    const importProductsBtn = document.getElementById('importProducts');
+    const prodFileInput = document.getElementById('prodFile');
+
+    exportProductsBtn.addEventListener('click', () => {
+      const data = JSON.stringify(loadProducts() || [], null, 2);
+      downloadFile('products.json', data);
+    });
+
+    importProductsBtn.addEventListener('click', () => prodFileInput.click());
+    prodFileInput.addEventListener('change', (ev) => {
+      const f = ev.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          if (!Array.isArray(parsed)) throw new Error('JSON must be array of products');
+          saveProducts(parsed);
+          renderProducts();
+          alert('Products imported.');
+        } catch (err) {
+          alert('Invalid JSON file: ' + err.message);
+        }
+      };
+      reader.readAsText(f);
+    });
+
+    // Export orders
+    document.getElementById('exportOrders').addEventListener('click', () => {
+      const data = JSON.stringify(loadOrders() || [], null, 2);
+      downloadFile('orders.json', data);
+    });
+
+    document.getElementById('clearOrders').addEventListener('click', () => {
+      if (!confirm('Delete all orders?')) return;
+      saveOrders([]);
+      renderOrders();
+    });
+
+    document.getElementById('downloadAll').addEventListener('click', () => {
+      const payload = {
+        products: loadProducts() || [],
+        orders: loadOrders() || []
+      };
+      downloadFile('bommakadai-backup.json', JSON.stringify(payload, null, 2));
+    });
+
+    function downloadFile(filename, text) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    // Storage change listener so admin updates if storefront creates orders in another tab
+    window.addEventListener('storage', (e) => {
+      if (e.key === ORDERS_KEY || e.key === PRODUCTS_KEY || e.key === '__orders_update__' || e.key === '__products_update__') {
+        renderProducts();
+        renderOrders();
+      }
+    });
+
+    // Initial render if already authenticated
+    if (isAuthenticated()) {
+      renderProducts();
+      renderOrders();
+    }
+
+    // Re-render when admin unlocked
+    window.addEventListener('storage', () => {
+      if (isAuthenticated()) {
+        renderProducts();
+        renderOrders();
+      }
+    });
+
+    // If admin unlocks during the session, render content
+    const observer = new MutationObserver(() => {
+      if (!adminUI.classList.contains('hidden')) {
+        renderProducts();
+        renderOrders();
+      }
+    });
+    observer.observe(adminUI, { attributes: true, attributeFilter: ['class'] });
+
+  </script>
+</body>
+</html>
